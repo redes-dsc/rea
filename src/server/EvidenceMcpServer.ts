@@ -9,7 +9,6 @@ import {
   type createCatalogIdentity,
 } from "../contracts/catalog/catalogIdentity.js";
 import { toolFamilyId } from "../contracts/toolFamilies.js";
-import { isToolFamilyAdvertised } from "../contracts/toolFamilyIds.js";
 import type { ToolResultDelivery } from "./ToolResultDelivery.js";
 import { EvidenceMcpServerCore } from "./EvidenceMcpServerCore.js";
 import type { CompactInputSchemaPresentation } from "../contracts/compactInputSchema.js";
@@ -18,6 +17,10 @@ import {
   type McpOutputSchemaProfile,
   COMPACT_INPUT_SCHEMA_PRESENTATION,
 } from "../contracts/mcpSchemaPresentation.js";
+import {
+  DEFAULT_MCP_TOOLS_LIST_PAGE_BUDGET,
+  type McpToolsListPageBudget,
+} from "../config/mcpToolsListPageBudget.js";
 
 /** Canonical composition retains the constructor's existing identity defaults. */
 export class EvidenceMcpServer extends EvidenceMcpServerCore {
@@ -32,6 +35,7 @@ export class EvidenceMcpServer extends EvidenceMcpServerCore {
     ),
     identity?: ReturnType<typeof createCatalogIdentity>,
     advertisedToolFamilies: ReadonlySet<string> | undefined = undefined,
+    toolsListPageBudget: McpToolsListPageBudget = DEFAULT_MCP_TOOLS_LIST_PAGE_BUDGET,
   ) {
     super(
       info,
@@ -47,6 +51,7 @@ export class EvidenceMcpServer extends EvidenceMcpServerCore {
           advertisedToolFamilies,
         ),
       advertisedToolFamilies,
+      toolsListPageBudget,
     );
   }
 
@@ -56,9 +61,9 @@ export class EvidenceMcpServer extends EvidenceMcpServerCore {
    * cannot direct agents to calls that always fail.
    */
   override advertisesTool(name: string): boolean {
-    return isToolFamilyAdvertised(
-      this.advertisedToolFamilies,
-      toolFamilyId(name),
-    );
+    const families = this.advertisedToolFamilies;
+    if (families === undefined) return true;
+    const family = toolFamilyId(name);
+    return family !== undefined && families.has(family);
   }
 }
